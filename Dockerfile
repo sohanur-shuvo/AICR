@@ -15,11 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy backend code
 COPY backend/ ./backend/
 
-# Copy models directory (if exists)
-COPY models/ ./models/ 2>/dev/null || mkdir -p ./models
-
-# Copy data directory if it exists
-COPY data/ ./data/
+# Create optional directories (models, data) without copying from context
+RUN mkdir -p ./models ./data
 
 # Use environment variables or Docker secrets instead of copying .env
 
