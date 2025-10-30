@@ -26,6 +26,6 @@ COPY data/ ./data/
 # Expose port
 EXPOSE 8000
 
-# Run backend
-CMD ["python", "backend/api.py"]
+# Run backend (bind to Railway's PORT if provided)
+CMD ["sh", "-c", "uvicorn backend.api:app --host 0.0.0.0 --port ${PORT:-8000}"]
 
