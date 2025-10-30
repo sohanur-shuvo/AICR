@@ -1,0 +1,65 @@
+# --- OS / Editor ---
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+*.swp
+*.swo
+*.tmp
+*.log
+~$*
+.vscode/
+.idea/
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+.build/
+.env
+.venv
+venv/
+ENV/
+
+# --- Node/React ---
+node_modules/
+.npm/
+.yarn/
+yarn.lock
+pnpm-lock.yaml
+*.tsbuildinfo
+
+# Build artifacts
+frontend/build/
+
+# --- Data / Secrets / Models ---
+.env*
+*.secret
+*.key
+*.pem
+*.crt
+*.der
+
+# Ignore customer keys and local data
+data/customer_keys.json
+
+# Large model files (keep out of repo; share via releases or storage)
+models/*.pt
+models/*.pth
+
+# --- Python tooling ---
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.dist/
+
+# --- Docker ---
+**/.docker/*
+
+# --- Misc ---
+*.bak
+*.orig

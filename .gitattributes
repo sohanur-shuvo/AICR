@@ -1,0 +1,10 @@
+* text=auto eol=lf
+
+# Treat common binary types as binary to prevent line ending conversions
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.pt binary
+*.pth binary

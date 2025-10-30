@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tesseract --version)",
+      "Bash(choco --version)",
+      "Bash(choco install tesseract -y)",
+      "Bash(winget install --id=UB-Mannheim.TesseractOCR -e --accept-source-agreements --accept-package-agreements)",
+      "Read(//c/Program Files/Tesseract-OCR/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

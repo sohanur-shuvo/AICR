@@ -1,0 +1,74 @@
+.App {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+}
+
+.main-content {
+  flex: 1;
+  margin-left: 280px;
+  padding: 2rem;
+  transition: margin-left 0.3s;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+    padding: 1rem;
+  }
+}
+
+.content-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.warning-banner {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid #ffc107;
+  font-weight: 500;
+}
+
+.error-banner {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid #f44336;
+  font-weight: 500;
+}
+
+.mode-indicator {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  display: inline-block;
+  font-size: 1.1rem;
+}
+
+.mode-indicator[data-mode="yolo"] {
+  background-color: #E3F2FD;
+  color: #1976D2;
+}
+
+.mode-indicator[data-mode="openai"] {
+  background-color: #E8F5E9;
+  color: #388E3C;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .App {
+    flex-direction: column;
+  }
+
+  .main-content {
+    margin-left: 0;
+  }
+}
