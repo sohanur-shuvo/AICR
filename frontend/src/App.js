@@ -6,7 +6,7 @@ import DetectionResults from './components/DetectionResults';
 import Header from './components/Header';
 import AdminPanel from './components/AdminPanel';
 import axios from 'axios';
-import { API_BASE_URL, buildUrl } from './api';
+import { buildUrl } from './api';
 
 function App() {
   const [systemStatus, setSystemStatus] = useState({
