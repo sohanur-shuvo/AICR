@@ -1,0 +1,20 @@
+{
+  "customers": {
+    "aicr_D1FUYJsOq8xjRLjce01nldjonShlLsRtF8k4XIR9Qic": {
+      "customer_id": "customer_1",
+      "name": "Shuvo",
+      "email": "",
+      "created_at": "2025-10-29T17:14:50.383183",
+      "active": true,
+      "request_count": 0
+    },
+    "aicr_pM7ctTpf_LGtW7Qmauw1EEYvixDmBm502nlM5Gwk7dM": {
+      "customer_id": "customer_2",
+      "name": "test",
+      "email": "test@systeam.com",
+      "created_at": "2025-10-30T08:20:02.038247",
+      "active": true,
+      "request_count": 5
+    }
+  }
+}

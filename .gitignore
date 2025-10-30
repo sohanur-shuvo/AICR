@@ -44,7 +44,7 @@ frontend/build/
 *.der
 
 # Ignore customer keys and local data
-data/customer_keys.json
+
 
 # Large model files (keep out of repo; share via releases or storage)
 models/*.pt

@@ -18,8 +18,8 @@ COPY backend/ ./backend/
 # Copy models directory (if exists)
 COPY models/ ./models/ 2>/dev/null || mkdir -p ./models
 
-# Copy data directory (for customer keys)
-COPY data/ ./data/ 2>/dev/null || mkdir -p ./data
+# Copy data directory if it exists
+COPY data/ ./data/
 
 # Use environment variables or Docker secrets instead of copying .env
 
