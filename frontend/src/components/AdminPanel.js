@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL, buildUrl } from '../api';
 import './AdminPanel.css';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+// Base URL now centralized in src/api.js
 
 function AdminPanel() {
+  // Prefer deployed backend URL; fallback to current origin for generated samples
+  const DISPLAY_BASE_URL = (API_BASE_URL && !API_BASE_URL.includes('localhost'))
+    ? API_BASE_URL
+    : (typeof window !== 'undefined' ? window.location.origin : API_BASE_URL);
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -25,7 +30,7 @@ function AdminPanel() {
   const loadCustomers = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}/admin/customers`);
+      const response = await axios.get(buildUrl('/admin/customers'));
       setCustomers(response.data.customers || []);
       setError(null);
     } catch (err) {
@@ -42,7 +47,7 @@ function AdminPanel() {
     setCreatedKey(null);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/admin/customers`, {
+      const response = await axios.post(buildUrl('/admin/customers'), {
         name: newCustomer.name,
         email: newCustomer.email
       });
@@ -73,7 +78,7 @@ function AdminPanel() {
       setError(null);
       
       // Use POST variant to avoid browsers/servers that reject DELETE bodies
-      await axios.post(`${API_BASE_URL}/admin/customers/delete`, {
+      await axios.post(buildUrl('/admin/customers/delete'), {
         api_key: deleteConfirm.api_key
       });
 
@@ -252,7 +257,7 @@ function AdminPanel() {
 import base64
 
 API_KEY = "${createdKey.api_key}"
-API_URL = "${API_BASE_URL}/v1/detect"
+API_URL = "${DISPLAY_BASE_URL}/v1/detect"
 
 # Read and encode image
 with open("router.jpg", "rb") as f:
@@ -278,7 +283,7 @@ print(f"Detected {result['device_count']} device(s)")`}
 const fs = require('fs');
 
 const API_KEY = '${createdKey.api_key}';
-const API_URL = '${API_BASE_URL}/v1/detect';
+const API_URL = '${DISPLAY_BASE_URL}/v1/detect';
 
 // Read and encode image
 const imageBase64 = fs.readFileSync('router.jpg', 'base64');
@@ -297,7 +302,7 @@ axios.post(API_URL, {
                     </pre>
 
                     <pre className={`code-example ${activeCodeTab === 'curl' ? 'active' : ''}`}>
-{`curl -X POST ${API_BASE_URL}/v1/detect \\
+{`curl -X POST ${DISPLAY_BASE_URL}/v1/detect \\
   -H "Authorization: ${createdKey.api_key}" \\
   -H "Content-Type: application/json" \\
   -d '{"image": "base64_image", "detection_mode": "openai"}'`}

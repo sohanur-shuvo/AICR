@@ -6,8 +6,7 @@ import DetectionResults from './components/DetectionResults';
 import Header from './components/Header';
 import AdminPanel from './components/AdminPanel';
 import axios from 'axios';
-
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+import { API_BASE_URL, buildUrl } from './api';
 
 function App() {
   const [systemStatus, setSystemStatus] = useState({
@@ -47,7 +46,7 @@ function App() {
 
   const fetchSystemStatus = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/status`);
+      const response = await axios.get(buildUrl('/status'));
       setSystemStatus(response.data);
 
       // Set detection mode based on availability
@@ -67,7 +66,7 @@ function App() {
 
   const validateApiKey = async (key) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/validate-api-key`, {
+      const response = await axios.post(buildUrl('/validate-api-key'), {
         api_key: key
       });
       setApiKeyValid(response.data.valid);
@@ -154,7 +153,7 @@ function App() {
         formData.append('api_key', apiKey);
       }
 
-      const response = await axios.post(`${API_BASE_URL}/detect`, formData, {
+      const response = await axios.post(buildUrl('/detect'), formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -200,7 +199,7 @@ function App() {
         formData.append('api_key', apiKey);
       }
 
-      const response = await axios.post(`${API_BASE_URL}/detect-batch`, formData, {
+      const response = await axios.post(buildUrl('/detect-batch'), formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -243,7 +242,7 @@ function App() {
 
     try {
       const response = await axios.post(
-        `${API_BASE_URL}/export-excel`,
+        buildUrl('/export-excel'),
         {
           devices: allDevices,
           ocr_data: allOcrData

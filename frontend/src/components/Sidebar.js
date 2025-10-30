@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './Sidebar.css';
+import { buildUrl } from '../api';
 
 function Sidebar({
   systemStatus,
@@ -34,7 +35,7 @@ function Sidebar({
     if (isValid) {
       try {
         // Persist key to backend .env
-        const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/save-api-key`, {
+        const res = await fetch(buildUrl('/save-api-key'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ api_key: apiKeyInput })
@@ -75,7 +76,7 @@ function Sidebar({
       const formData = new FormData();
       formData.append('model_file', file);
 
-      const res = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/upload-model`, {
+      const res = await fetch(buildUrl('/upload-model'), {
         method: 'POST',
         body: formData
       });
