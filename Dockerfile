@@ -21,8 +21,7 @@ COPY models/ ./models/ 2>/dev/null || mkdir -p ./models
 # Copy data directory (for customer keys)
 COPY data/ ./data/ 2>/dev/null || mkdir -p ./data
 
-# Copy .env (if exists, or use environment variables)
-COPY .env .env 2>/dev/null || echo "OPENAI_API_KEY=your_key_here" > .env
+# Use environment variables or Docker secrets instead of copying .env
 
 # Expose port
 EXPOSE 8000
