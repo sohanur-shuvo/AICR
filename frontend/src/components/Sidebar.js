@@ -13,7 +13,8 @@ function Sidebar({
   apiKey,
   setApiKey,
   apiKeyValid,
-  validateApiKey
+  validateApiKey,
+  onRefreshStatus
 }) {
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [connecting, setConnecting] = useState(false);
@@ -213,7 +214,28 @@ function Sidebar({
       <div className="divider"></div>
 
       <div className="sidebar-section">
-        <h3>📊 System Status</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <h3>📊 System Status</h3>
+          {onRefreshStatus && (
+            <button
+              onClick={onRefreshStatus}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '18px',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.target.style.background = 'rgba(102, 126, 234, 0.1)'}
+              onMouseLeave={(e) => e.target.style.background = 'none'}
+              title="Refresh Status"
+            >
+              🔄
+            </button>
+          )}
+        </div>
         <div className="status-item">
           <span className={systemStatus.has_yolo_model ? 'status-success' : 'status-warning'}>
             {systemStatus.has_yolo_model ? '✅' : '⚠️'} YOLO Model
@@ -224,7 +246,7 @@ function Sidebar({
             {systemStatus.has_openai || apiKeyValid ? '✅' : '⚠️'} OpenAI API
           </span>
           {!systemStatus.has_openai && !apiKeyValid && (
-            <small>Enter API key above</small>
+            <small>Enter API key above or set OPENAI_API_KEY in Railway</small>
           )}
         </div>
         {/* YOLO model upload */}

@@ -77,7 +77,10 @@ function App() {
 
   const fetchSystemStatus = async () => {
     try {
-      const response = await axios.get(buildUrl('/status'));
+      // Add cache-busting parameter to ensure fresh status
+      const response = await axios.get(buildUrl('/status'), {
+        params: { _t: Date.now() }
+      });
       setSystemStatus(response.data);
 
       // Set detection mode based on availability
@@ -339,6 +342,7 @@ function App() {
         setApiKey={setApiKey}
         apiKeyValid={apiKeyValid}
         validateApiKey={validateApiKey}
+        onRefreshStatus={fetchSystemStatus}
       />
 
       <div className="main-content">

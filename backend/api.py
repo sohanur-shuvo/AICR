@@ -176,8 +176,8 @@ def get_openai_client(api_key=None):
     """Initialize OpenAI client with complete isolation"""
     # Try to get API key from parameter first, then from environment
     if not api_key:
-        # Prioritize system environment variables (Railway) over .env files
-        api_key = os.getenv('OPENAI_API_KEY')
+        # Always read fresh from system environment variables (Railway)
+        api_key = os.environ.get('OPENAI_API_KEY')  # Use environ.get() for fresh reads
         
         # If not found in system env, try loading from .env file (local dev only)
         if not api_key:
@@ -186,7 +186,7 @@ def get_openai_client(api_key=None):
                 load_dotenv('.env', override=False)  # Don't override system vars
             elif os.path.exists('../.env'):
                 load_dotenv('../.env', override=False)
-            api_key = os.getenv('OPENAI_API_KEY')
+            api_key = os.environ.get('OPENAI_API_KEY')
 
     if not api_key or api_key == 'your_openai_api_key_here':
         return None
@@ -687,15 +687,20 @@ async def root():
 
 @app.get("/status", response_model=SystemStatus)
 async def get_status():
-    """Get system status"""
+    """Get system status - always reads fresh from environment"""
     has_yolo = os.path.exists("models/best.pt") or os.path.exists("../models/best.pt")
 
-    # Check for OpenAI API key in environment - prioritize system env vars (Railway)
-    api_key = os.getenv('OPENAI_API_KEY')
-    # Also check common alternative names
-    if not api_key:
-        api_key = os.getenv('OPENAI_API_KEY', os.getenv('OPENAI_KEY'))
-    has_openai = api_key is not None and api_key != '' and api_key != 'your_openai_api_key_here' and len(api_key) > 20
+    # Always read fresh from environment (Railway sets these at runtime)
+    # Check for OpenAI API key - prioritize system environment variables
+    api_key = os.environ.get('OPENAI_API_KEY')  # Use environ.get() to always read current value
+    
+    # Validate the API key format
+    has_openai = False
+    if api_key:
+        api_key = api_key.strip()
+        # Check if it's a valid OpenAI key format (starts with sk- and has reasonable length)
+        if (api_key.startswith('sk-') and len(api_key) > 20) or (len(api_key) > 20 and api_key != 'your_openai_api_key_here'):
+            has_openai = True
 
     detection_mode = None
     if has_yolo and has_openai:
