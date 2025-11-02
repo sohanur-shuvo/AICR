@@ -5,7 +5,7 @@ import './SimpleLogin.css';
 
 function SimpleLogin({ onLogin }) {
   const [formData, setFormData] = useState({
-    email: '',
+    username: '',
     password: ''
   });
   const [loading, setLoading] = useState(false);
@@ -53,14 +53,15 @@ function SimpleLogin({ onLogin }) {
           {error && <div className="simple-login-error">{error}</div>}
 
           <div className="simple-login-field">
-            <label>Email</label>
+            <label>Username</label>
             <input
-              type="email"
-              name="email"
-              placeholder="Enter your email"
-              value={formData.email}
+              type="text"
+              name="username"
+              placeholder="Enter your username"
+              value={formData.username}
               onChange={handleChange}
               required
+              autoComplete="username"
             />
           </div>
 

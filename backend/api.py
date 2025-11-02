@@ -506,19 +506,23 @@ def generate_auth_token() -> str:
     """Generate a secure authentication token"""
     return f"aicr_auth_{secrets.token_urlsafe(48)}"
 
-def create_user(email: str, password: str, name: str):
+def create_user(username: str, password: str, name: str, email: str = ""):
     """Create a new user"""
     data = load_users()
-    if email in data.get('users', {}):
-        raise HTTPException(status_code=400, detail="User already exists")
+    # Check if username already exists
+    for existing_key, existing_user in data.get('users', {}).items():
+        if existing_key == username or existing_user.get('username') == username:
+            raise HTTPException(status_code=400, detail="Username already exists")
     
     user_id = f"user_{len(data.get('users', {})) + 1}"
     token = generate_auth_token()
     
-    data['users'][email] = {
+    # Use username as the key
+    data['users'][username] = {
         "user_id": user_id,
         "name": name,
-        "email": email,
+        "username": username,
+        "email": email or username,
         "password_hash": hash_password(password),
         "token": token,
         "created_at": datetime.now().isoformat(),
@@ -529,20 +533,27 @@ def create_user(email: str, password: str, name: str):
     return {
         "user_id": user_id,
         "name": name,
-        "email": email,
+        "username": username,
+        "email": email or username,
         "token": token
     }
 
-def authenticate_user(email: str, password: str):
+def authenticate_user(username: str, password: str):
     """Authenticate user and return user data"""
     data = load_users()
-    user = data.get('users', {}).get(email)
+    # Find user by username (stored as email key in JSON)
+    # Support both username and email lookup
+    user = None
+    for email_key, user_data in data.get('users', {}).items():
+        if email_key == username or user_data.get('username') == username:
+            user = user_data
+            break
     
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        raise HTTPException(status_code=401, detail="Invalid username or password")
     
     if not verify_password(password, user['password_hash']):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        raise HTTPException(status_code=401, detail="Invalid username or password")
     
     # Update last login
     user['last_login'] = datetime.now().isoformat()
@@ -551,7 +562,7 @@ def authenticate_user(email: str, password: str):
     return {
         "user_id": user["user_id"],
         "name": user["name"],
-        "email": user["email"],
+        "email": user.get("email", username),
         "token": user["token"]
     }
 
@@ -957,7 +968,7 @@ async def save_api_key(request: APIKeyRequest):
 # ===== AUTHENTICATION ENDPOINTS =====
 
 class LoginRequest(BaseModel):
-    email: str
+    username: str
     password: str
 
 class SignUpRequest(BaseModel):
@@ -992,13 +1003,14 @@ async def signup(request: SignUpRequest):
 async def login(request: LoginRequest):
     """Login and get authentication token"""
     try:
-        user = authenticate_user(request.email, request.password)
+        user = authenticate_user(request.username, request.password)
         return {
             "success": True,
             "message": "Login successful",
             "user": {
                 "user_id": user["user_id"],
                 "name": user["name"],
+                "username": user.get("username", request.username),
                 "email": user["email"]
             },
             "token": user["token"]
@@ -1238,9 +1250,10 @@ def ensure_default_user():
     if len(data.get('users', {})) == 0:
         try:
             default_user = create_user(
-                email="lexdata",
+                username="lexdata",
                 password="LexDataLabs2026",
-                name="LexData Labs Admin"
+                name="LexData Labs Admin",
+                email="lexdata"
             )
             print(f"✅ Default admin user created: lexdata")
             return default_user
