@@ -5,10 +5,13 @@ import ImageUpload from './components/ImageUpload';
 import DetectionResults from './components/DetectionResults';
 import Header from './components/Header';
 import AdminPanel from './components/AdminPanel';
+import SimpleLogin from './components/SimpleLogin';
 import axios from 'axios';
 import { buildUrl } from './api';
 
 function App() {
+  const [authenticated, setAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
   const [systemStatus, setSystemStatus] = useState({
     has_yolo_model: false,
     has_openai: false,
@@ -39,10 +42,41 @@ function App() {
   const [error, setError] = useState(null);
   const [currentView, setCurrentView] = useState('main'); // 'main' or 'admin'
 
-  // Fetch system status on mount
+  // Check authentication on mount
   useEffect(() => {
-    fetchSystemStatus();
+    const token = localStorage.getItem('aicr_token');
+    const userData = localStorage.getItem('aicr_user');
+    
+    if (token && userData) {
+      // Verify token is still valid
+      axios.post(buildUrl('/auth/verify'), { token })
+        .then(response => {
+          if (response.data.success) {
+            setUser(JSON.parse(userData));
+            setAuthenticated(true);
+            fetchSystemStatus();
+          } else {
+            localStorage.removeItem('aicr_token');
+            localStorage.removeItem('aicr_user');
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem('aicr_token');
+          localStorage.removeItem('aicr_user');
+        });
+    }
   }, []);
+
+  const handleLogin = (userData) => {
+    setUser(userData);
+    setAuthenticated(true);
+    fetchSystemStatus();
+  };
+
+  // Show login page if not authenticated
+  if (!authenticated) {
+    return <SimpleLogin onLogin={handleLogin} />;
+  }
 
   const fetchSystemStatus = async () => {
     try {
