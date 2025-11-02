@@ -27,6 +27,19 @@ import secrets
 import hashlib
 from fastapi import Header, Depends, Security
 from fastapi.security import APIKeyHeader
+import logging
+from logging.handlers import RotatingFileHandler
+
+# Configure structured logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        RotatingFileHandler('aicr.log', maxBytes=10485760, backupCount=5),  # 10MB per file, 5 backups
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # Load environment variables - prioritize Railway/system env vars over .env file
 # Get the backend directory path
@@ -45,12 +58,19 @@ else:
 
 app = FastAPI(title="Device Detection API", version="1.0.0")
 
-# CORS middleware
+# CORS middleware - secure configuration
+allowed_origins_str = os.getenv('ALLOWED_ORIGINS', '*')
+if allowed_origins_str == '*' and os.getenv('RAILWAY_ENVIRONMENT'):
+    # Production default: allow common frontend origins
+    allowed_origins = ["*"]  # Keep permissive for Railway, restrict in production
+else:
+    allowed_origins = [origin.strip() for origin in allowed_origins_str.split(',') if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -502,12 +522,29 @@ def save_users(data):
         json.dump(data, f, indent=2)
 
 def hash_password(password: str) -> str:
-    """Hash password using SHA256 (simple - use bcrypt in production)"""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Hash password using bcrypt (more secure than SHA256)"""
+    try:
+        import bcrypt
+        salt = bcrypt.gensalt()
+        return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+    except ImportError:
+        # Fallback to SHA256 if bcrypt not installed (backward compatibility)
+        logger.warning("bcrypt not installed, using SHA256 (less secure)")
+        return hashlib.sha256(password.encode()).hexdigest()
 
-def verify_password(password: str, hashed: str) -> bool:
+def verify_password(password: str, password_hash: str) -> bool:
     """Verify password against hash"""
-    return hash_password(password) == hashed
+    try:
+        import bcrypt
+        # Try bcrypt first
+        if password_hash.startswith('$2b$') or password_hash.startswith('$2a$'):
+            return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
+        else:
+            # Fallback for old SHA256 hashes
+            return hashlib.sha256(password.encode()).hexdigest() == password_hash
+    except (ImportError, ValueError):
+        # Fallback to SHA256 if bcrypt not installed or invalid hash format
+        return hashlib.sha256(password.encode()).hexdigest() == password_hash
 
 def generate_auth_token() -> str:
     """Generate a secure authentication token"""
@@ -684,6 +721,48 @@ def generate_excel_report(devices_data, ocr_data=None, filename_prefix="device_d
 async def root():
     return {"message": "Device Detection API is running", "version": "1.0.0"}
 
+@app.get("/health")
+async def health_check():
+    """Comprehensive health check endpoint"""
+    health_status = {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0.0",
+        "services": {}
+    }
+    
+    # Check YOLO model
+    has_yolo = os.path.exists("models/best.pt") or os.path.exists("../models/best.pt")
+    health_status["services"]["yolo_model"] = {
+        "available": has_yolo,
+        "status": "ok" if has_yolo else "not_found"
+    }
+    
+    # Check OpenAI API
+    api_key = os.environ.get('OPENAI_API_KEY')
+    has_openai = api_key and len(api_key) > 20 and api_key != 'your_openai_api_key_here'
+    health_status["services"]["openai"] = {
+        "available": has_openai,
+        "status": "ok" if has_openai else "not_configured"
+    }
+    
+    # Check data directories
+    data_dir_exists = os.path.exists("data") or os.path.exists("../data")
+    models_dir_exists = os.path.exists("models") or os.path.exists("../models")
+    
+    health_status["services"]["directories"] = {
+        "data": "ok" if data_dir_exists else "warning",
+        "models": "ok" if models_dir_exists else "warning"
+    }
+    
+    # Overall status
+    if not has_yolo and not has_openai:
+        health_status["status"] = "degraded"
+    elif not has_yolo or not has_openai:
+        health_status["status"] = "partial"
+    
+    return health_status
+
 
 @app.get("/status", response_model=SystemStatus)
 async def get_status():
@@ -727,6 +806,11 @@ async def validate_api_key(request: APIKeyRequest):
         return {"valid": False, "message": "Invalid API key"}
 
 
+# Configuration constants
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/bmp', 'image/jfif']
+ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.bmp', '.jfif']
+
 @app.post("/detect")
 async def detect_device(
     file: UploadFile = File(...),
@@ -734,6 +818,32 @@ async def detect_device(
     enable_ocr: bool = Form(True),
     api_key: Optional[str] = Form(None)
 ):
+    """Detect devices in uploaded image with validation"""
+    # Validate file size
+    file_contents = await file.read()
+    file_size = len(file_contents)
+    
+    if file_size > MAX_FILE_SIZE:
+        logger.warning(f"File too large: {file_size} bytes from {file.filename}")
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large. Maximum size is {MAX_FILE_SIZE / (1024*1024):.0f}MB"
+        )
+    
+    if file_size == 0:
+        raise HTTPException(status_code=400, detail="Empty file uploaded")
+    
+    # Validate file type
+    file_extension = Path(file.filename).suffix.lower() if file.filename else ''
+    if file_extension not in ALLOWED_EXTENSIONS:
+        logger.warning(f"Invalid file extension: {file_extension} from {file.filename}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {', '.join(ALLOWED_EXTENSIONS)}"
+        )
+    
+    # Reset file pointer
+    await file.seek(0)
     """
     Detect devices in uploaded image
 
@@ -746,6 +856,15 @@ async def detect_device(
         # Read and process image
         contents = await file.read()
         image = Image.open(io.BytesIO(contents))
+        
+        # Compress/resize large images for better performance
+        MAX_IMAGE_DIMENSION = 2048  # Max width or height
+        
+        if image.size[0] > MAX_IMAGE_DIMENSION or image.size[1] > MAX_IMAGE_DIMENSION:
+            logger.info(f"Resizing large image from {image.size} to max {MAX_IMAGE_DIMENSION}")
+            image.thumbnail((MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION), Image.Resampling.LANCZOS)
+        
+        logger.info(f"Processing image: {file.filename}, size: {image.size}, mode: {detection_mode}")
 
         devices = []
         ocr_data = None
@@ -944,6 +1063,27 @@ async def export_excel(
 
 @app.post("/upload-model")
 async def upload_model(model_file: UploadFile = File(...)):
+    """Upload YOLO model file with validation"""
+    # Validate file size (models can be large, but set reasonable limit)
+    MAX_MODEL_SIZE = 500 * 1024 * 1024  # 500MB
+    
+    file_contents = await model_file.read()
+    file_size = len(file_contents)
+    
+    if file_size > MAX_MODEL_SIZE:
+        logger.warning(f"Model file too large: {file_size} bytes")
+        raise HTTPException(
+            status_code=413,
+            detail=f"Model file too large. Maximum size is {MAX_MODEL_SIZE / (1024*1024):.0f}MB"
+        )
+    
+    # Validate file extension
+    if not model_file.filename or not model_file.filename.lower().endswith('.pt'):
+        logger.warning(f"Invalid model file extension: {model_file.filename}")
+        raise HTTPException(status_code=400, detail="Model file must be a .pt file")
+    
+    # Reset file pointer
+    await model_file.seek(0)
     """Upload a custom YOLO .pt file and make it the active model (models/best.pt)."""
     try:
         if not model_file.filename.lower().endswith('.pt'):
@@ -998,7 +1138,18 @@ class VerifyTokenRequest(BaseModel):
 async def signup(request: SignUpRequest):
     """Create a new user account"""
     try:
+        # Validate input
+        if not request.name or len(request.name.strip()) < 2:
+            raise HTTPException(status_code=400, detail="Name must be at least 2 characters")
+        
+        if not request.email or '@' not in request.email:
+            raise HTTPException(status_code=400, detail="Invalid email address")
+        
+        if not request.password or len(request.password) < 6:
+            raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+        
         user = create_user(request.email, request.password, request.name)
+        logger.info(f"New user created: {user['user_id']}")
         return {
             "success": True,
             "message": "Account created successfully",
@@ -1012,13 +1163,22 @@ async def signup(request: SignUpRequest):
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Signup failed: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/auth/login")
 async def login(request: LoginRequest):
     """Login and get authentication token"""
     try:
+        # Validate input
+        if not request.username or not request.username.strip():
+            raise HTTPException(status_code=400, detail="Username is required")
+        
+        if not request.password:
+            raise HTTPException(status_code=400, detail="Password is required")
+        
         user = authenticate_user(request.username, request.password)
+        logger.info(f"User logged in: {request.username}")
         return {
             "success": True,
             "message": "Login successful",
@@ -1033,6 +1193,7 @@ async def login(request: LoginRequest):
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Login failed for {request.username}: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/auth/verify")
@@ -1178,9 +1339,41 @@ async def customer_detect(
     Returns: Detection results with devices and OCR data
     """
     try:
-        # Decode base64 image
-        image_data = base64.b64decode(request.image)
-        image = Image.open(io.BytesIO(image_data))
+        # Validate base64 image
+        if not request.image or len(request.image) < 100:
+            raise HTTPException(status_code=400, detail="Invalid or empty image data")
+        
+        # Decode to check validity
+        try:
+            image_data = base64.b64decode(request.image)
+        except Exception as e:
+            logger.warning(f"Invalid base64 encoding: {str(e)}")
+            raise HTTPException(status_code=400, detail="Invalid base64 image encoding")
+        
+        if len(image_data) > MAX_FILE_SIZE:
+            logger.warning(f"Base64 image too large: {len(image_data)} bytes")
+            raise HTTPException(
+                status_code=413,
+                detail=f"Image too large. Maximum size is {MAX_FILE_SIZE / (1024*1024):.0f}MB"
+            )
+        
+        # Validate it's a valid image
+        try:
+            image = Image.open(io.BytesIO(image_data))
+            image.verify()
+            # Reopen after verify (verify closes the image)
+            image = Image.open(io.BytesIO(image_data))
+        except Exception as e:
+            logger.warning(f"Invalid image data: {str(e)}")
+            raise HTTPException(status_code=400, detail="Invalid image format")
+        
+        # Optimize large images
+        MAX_IMAGE_DIMENSION = 2048
+        if image.size[0] > MAX_IMAGE_DIMENSION or image.size[1] > MAX_IMAGE_DIMENSION:
+            logger.info(f"Resizing large image from {image.size} to max {MAX_IMAGE_DIMENSION}")
+            image.thumbnail((MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION), Image.Resampling.LANCZOS)
+        
+        logger.info(f"Customer API request: mode={request.detection_mode}, ocr={request.enable_ocr}")
         
         devices = []
         ocr_data = None
