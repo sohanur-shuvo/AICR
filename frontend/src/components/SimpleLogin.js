@@ -10,6 +10,7 @@ function SimpleLogin({ onLogin }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -65,14 +66,24 @@ function SimpleLogin({ onLogin }) {
 
           <div className="simple-login-field">
             <label>Password</label>
-            <input
-              type="password"
-              name="password"
-              placeholder="Enter your password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
+            <div className="simple-password-wrapper">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                placeholder="Enter your password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+              <button
+                type="button"
+                className="simple-password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+              >
+                {showPassword ? "🙈" : "👁️"}
+              </button>
+            </div>
           </div>
 
           <button

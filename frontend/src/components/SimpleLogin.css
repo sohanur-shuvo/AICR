@@ -74,6 +74,40 @@
   color: #999;
 }
 
+.simple-password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.simple-password-wrapper input {
+  padding-right: 50px;
+  width: 100%;
+}
+
+.simple-password-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+  z-index: 1;
+}
+
+.simple-password-toggle:hover {
+  transform: scale(1.1);
+}
+
+.simple-password-toggle:active {
+  transform: scale(0.95);
+}
+
 .simple-login-button {
   padding: 14px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
