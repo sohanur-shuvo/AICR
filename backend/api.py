@@ -28,17 +28,20 @@ import hashlib
 from fastapi import Header, Depends, Security
 from fastapi.security import APIKeyHeader
 
-# Load environment variables using absolute path
+# Load environment variables - prioritize Railway/system env vars over .env file
 # Get the backend directory path
 backend_dir = Path(__file__).resolve().parent
 # Get the project root (parent of backend)
 project_root = backend_dir.parent
-# Load .env from project root
+
+# First, load system environment variables (Railway sets these directly)
+# Then load .env file if it exists (for local development only)
+# Railway variables take precedence
 env_path = project_root / '.env'
 if env_path.exists():
-    load_dotenv(env_path, override=True)
+    load_dotenv(env_path, override=False)  # Don't override existing env vars (Railway vars)
 else:
-    load_dotenv()  # Try default locations
+    load_dotenv()  # Try default locations, but don't override system vars
 
 app = FastAPI(title="Device Detection API", version="1.0.0")
 
@@ -134,33 +137,37 @@ def save_uploaded_model(file_bytes: bytes, filename: str = "best.pt"):
 
 
 def save_api_key_to_env(api_key: str):
-    """Persist OPENAI_API_KEY to project .env and current process env"""
+    """Persist OPENAI_API_KEY to current process env (works in Railway via env vars)"""
     try:
-        # Ensure .env exists at project root
-        env_file = project_root / '.env'
-        lines = []
-        if env_file.exists():
-            with open(env_file, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-
-        key_written = False
-        new_lines = []
-        for line in lines:
-            if line.strip().startswith('OPENAI_API_KEY='):
-                new_lines.append(f"OPENAI_API_KEY={api_key}\n")
-                key_written = True
-            else:
-                new_lines.append(line)
-
-        if not key_written:
-            new_lines.append(f"OPENAI_API_KEY={api_key}\n")
-
-        with open(env_file, 'w', encoding='utf-8') as f:
-            f.writelines(new_lines)
-
         # Update current environment for this process
+        # In Railway, this will use the environment variable set in the Railway dashboard
         os.environ['OPENAI_API_KEY'] = api_key
-        return str(env_file)
+        
+        # Only write to .env file in local development (not in Railway)
+        if not os.getenv('RAILWAY_ENVIRONMENT'):
+            env_file = project_root / '.env'
+            lines = []
+            if env_file.exists():
+                with open(env_file, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+
+            key_written = False
+            new_lines = []
+            for line in lines:
+                if line.strip().startswith('OPENAI_API_KEY='):
+                    new_lines.append(f"OPENAI_API_KEY={api_key}\n")
+                    key_written = True
+                else:
+                    new_lines.append(line)
+
+            if not key_written:
+                new_lines.append(f"OPENAI_API_KEY={api_key}\n")
+
+            with open(env_file, 'w', encoding='utf-8') as f:
+                f.writelines(new_lines)
+            return str(env_file)
+        else:
+            return "Environment variable (Railway)"
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to save API key: {str(e)}")
 
@@ -169,17 +176,17 @@ def get_openai_client(api_key=None):
     """Initialize OpenAI client with complete isolation"""
     # Try to get API key from parameter first, then from environment
     if not api_key:
-        # Look in current directory first, then parent directory
-        from pathlib import Path
-
-        # Try loading from current directory
-        if os.path.exists('.env'):
-            load_dotenv('.env', override=True)
-        # Try parent directory
-        elif os.path.exists('../.env'):
-            load_dotenv('../.env', override=True)
-
+        # Prioritize system environment variables (Railway) over .env files
         api_key = os.getenv('OPENAI_API_KEY')
+        
+        # If not found in system env, try loading from .env file (local dev only)
+        if not api_key:
+            from pathlib import Path
+            if os.path.exists('.env'):
+                load_dotenv('.env', override=False)  # Don't override system vars
+            elif os.path.exists('../.env'):
+                load_dotenv('../.env', override=False)
+            api_key = os.getenv('OPENAI_API_KEY')
 
     if not api_key or api_key == 'your_openai_api_key_here':
         return None
@@ -683,8 +690,11 @@ async def get_status():
     """Get system status"""
     has_yolo = os.path.exists("models/best.pt") or os.path.exists("../models/best.pt")
 
-    # Check for OpenAI API key in environment
+    # Check for OpenAI API key in environment - prioritize system env vars (Railway)
     api_key = os.getenv('OPENAI_API_KEY')
+    # Also check common alternative names
+    if not api_key:
+        api_key = os.getenv('OPENAI_API_KEY', os.getenv('OPENAI_KEY'))
     has_openai = api_key is not None and api_key != '' and api_key != 'your_openai_api_key_here' and len(api_key) > 20
 
     detection_mode = None
