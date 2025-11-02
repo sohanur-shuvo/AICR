@@ -11,7 +11,6 @@ import { buildUrl } from './api';
 
 function App() {
   const [authenticated, setAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
   const [systemStatus, setSystemStatus] = useState({
     has_yolo_model: false,
     has_openai: false,
@@ -52,7 +51,6 @@ function App() {
       axios.post(buildUrl('/auth/verify'), { token })
         .then(response => {
           if (response.data.success) {
-            setUser(JSON.parse(userData));
             setAuthenticated(true);
             fetchSystemStatus();
           } else {
@@ -67,8 +65,7 @@ function App() {
     }
   }, []);
 
-  const handleLogin = (userData) => {
-    setUser(userData);
+  const handleLogin = () => {
     setAuthenticated(true);
     fetchSystemStatus();
   };

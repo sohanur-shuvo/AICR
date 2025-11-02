@@ -31,7 +31,7 @@ function SimpleLogin({ onLogin }) {
         // Store auth token
         localStorage.setItem('aicr_token', response.data.token);
         localStorage.setItem('aicr_user', JSON.stringify(response.data.user));
-        onLogin(response.data.user);
+        onLogin();
       }
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
