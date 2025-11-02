@@ -18,8 +18,10 @@ from dotenv import load_dotenv
 import io
 import base64
 import requests
+from requests.exceptions import Timeout, RequestException
 from bs4 import BeautifulSoup
 import urllib.parse
+import time
 import pandas as pd
 from datetime import datetime
 import json
@@ -223,8 +225,10 @@ def get_openai_client(api_key=None):
                     "Content-Type": "application/json"
                 }
                 self.chat = ChatCompletions(self)
+                # Configurable timeout (default 120 seconds for vision API)
+                self.default_timeout = int(os.getenv('OPENAI_TIMEOUT', '120'))
 
-            def chat_completions_create(self, model, messages, max_tokens=100, temperature=None):
+            def chat_completions_create(self, model, messages, max_tokens=100, temperature=None, timeout=None):
                 url = f"{self.base_url}/chat/completions"
                 data = {
                     "model": model,
@@ -235,7 +239,11 @@ def get_openai_client(api_key=None):
                 if temperature is not None:
                     data["temperature"] = temperature
 
-                response = requests.post(url, headers=self.headers, json=data, timeout=30)
+                # Use provided timeout or default (120 seconds for vision API requests)
+                request_timeout = timeout if timeout is not None else self.default_timeout
+                
+                # Make request - exceptions will propagate to caller for retry handling
+                response = requests.post(url, headers=self.headers, json=data, timeout=request_timeout)
 
                 if response.status_code != 200:
                     raise Exception(f"API Error {response.status_code}: {response.text}")
@@ -309,8 +317,9 @@ def encode_image_to_base64(image):
 
 
 def detect_with_openai_vision(client, image):
-    """Use OpenAI Vision API to detect and identify network devices"""
+    """Use OpenAI Vision API to detect and identify network devices with retry logic"""
     img_base64 = encode_image_to_base64(image)
+    logger.info(f"Making OpenAI Vision API request (image size: {len(img_base64)} chars)")
 
     prompt = """Analyze this image and identify ALL network equipment and servers you can see (routers, switches, access points, firewalls, servers, blade servers, rack servers, etc.).
 
@@ -350,29 +359,96 @@ DESCRIPTION: [description]
 If multiple devices are present, list them all with the above format.
 If no network device is visible, state "NO_DEVICE_DETECTED"."""
 
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/png;base64,{img_base64}"
+    # Retry logic for timeout and transient errors
+    max_retries = int(os.getenv('OPENAI_MAX_RETRIES', '3'))
+    retry_delay = 1  # Start with 1 second delay
+    response = None
+    
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"OpenAI Vision API request attempt {attempt + 1}/{max_retries}")
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/png;base64,{img_base64}"
+                                }
                             }
-                        }
-                    ]
-                }
-            ],
-            max_tokens=1500
+                        ]
+                    }
+                ],
+                max_tokens=1500
+            )
+            break  # Success, exit retry loop
+        except (Timeout, requests.exceptions.Timeout) as e:
+            if attempt < max_retries - 1:
+                wait_time = retry_delay * (2 ** attempt)  # Exponential backoff
+                logger.warning(f"OpenAI API timeout on attempt {attempt + 1}, retrying in {wait_time}s...")
+                time.sleep(wait_time)
+                continue
+            else:
+                logger.error(f"OpenAI Vision API timeout after {max_retries} attempts")
+                raise HTTPException(
+                    status_code=504,
+                    detail=f"OpenAI API request timed out after {max_retries} attempts. The image may be too large or the service is slow. Please try again with a smaller image."
+                )
+        except (RequestException, requests.exceptions.RequestException) as e:
+            if attempt < max_retries - 1:
+                wait_time = retry_delay * (2 ** attempt)
+                logger.warning(f"OpenAI API error on attempt {attempt + 1}: {str(e)}, retrying in {wait_time}s...")
+                time.sleep(wait_time)
+                continue
+            else:
+                logger.error(f"OpenAI Vision API error after {max_retries} attempts: {str(e)}")
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"OpenAI Vision API error: {str(e)}"
+                )
+        except HTTPException:
+            # Re-raise HTTPExceptions immediately (they're already properly formatted)
+            raise
+        except Exception as e:
+            # Check if it's a timeout-related error in the message
+            error_str = str(e).lower()
+            if 'timeout' in error_str or 'timed out' in error_str:
+                if attempt < max_retries - 1:
+                    wait_time = retry_delay * (2 ** attempt)
+                    logger.warning(f"OpenAI API timeout error on attempt {attempt + 1}: {str(e)}, retrying in {wait_time}s...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    logger.error(f"OpenAI Vision API timeout after {max_retries} attempts: {str(e)}")
+                    raise HTTPException(
+                        status_code=504,
+                        detail=f"OpenAI API request timed out. Please try again with a smaller image or check your network connection."
+                    )
+            else:
+                # Non-retryable errors
+                logger.error(f"OpenAI Vision API error: {str(e)}", exc_info=True)
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"OpenAI Vision API error: {str(e)}"
+                )
+    
+    if not response:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to get response from OpenAI API after all retries"
         )
+    
+    try:
 
         result_text = response.choices[0].message.content
+        logger.info("OpenAI Vision API request successful")
 
         if "NO_DEVICE_DETECTED" in result_text:
+            logger.info("No devices detected in image")
             return []
 
         # Parse multiple devices
@@ -421,7 +497,23 @@ If no network device is visible, state "NO_DEVICE_DETECTED"."""
 
         return devices
 
+    except HTTPException:
+        # Re-raise HTTPExceptions (they already have proper error messages)
+        raise
+    except requests.exceptions.Timeout as e:
+        logger.error(f"OpenAI Vision API timeout: {str(e)}")
+        raise HTTPException(
+            status_code=504,
+            detail=f"OpenAI API request timed out. Please try again with a smaller image or check your network connection."
+        )
+    except requests.exceptions.RequestException as e:
+        logger.error(f"OpenAI Vision API request error: {str(e)}")
+        raise HTTPException(
+            status_code=503,
+            detail=f"OpenAI Vision API error: {str(e)}"
+        )
     except Exception as e:
+        logger.error(f"Error in detect_with_openai_vision: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"OpenAI Vision API error: {str(e)}")
 
 
