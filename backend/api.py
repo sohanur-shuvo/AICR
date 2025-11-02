@@ -471,6 +471,102 @@ def delete_customer(api_key: str):
         return True
     return False
 
+# ===== USER AUTHENTICATION =====
+
+USERS_FILE = project_root / 'data' / 'users.json'
+
+def ensure_users_file():
+    """Ensure users file exists"""
+    USERS_FILE.parent.mkdir(parents=True, exist_ok=True)
+    if not USERS_FILE.exists():
+        with open(USERS_FILE, 'w') as f:
+            json.dump({"users": {}}, f)
+
+def load_users():
+    """Load users from file"""
+    ensure_users_file()
+    with open(USERS_FILE, 'r') as f:
+        return json.load(f)
+
+def save_users(data):
+    """Save users to file"""
+    ensure_users_file()
+    with open(USERS_FILE, 'w') as f:
+        json.dump(data, f, indent=2)
+
+def hash_password(password: str) -> str:
+    """Hash password using SHA256 (simple - use bcrypt in production)"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def verify_password(password: str, hashed: str) -> bool:
+    """Verify password against hash"""
+    return hash_password(password) == hashed
+
+def generate_auth_token() -> str:
+    """Generate a secure authentication token"""
+    return f"aicr_auth_{secrets.token_urlsafe(48)}"
+
+def create_user(email: str, password: str, name: str):
+    """Create a new user"""
+    data = load_users()
+    if email in data.get('users', {}):
+        raise HTTPException(status_code=400, detail="User already exists")
+    
+    user_id = f"user_{len(data.get('users', {})) + 1}"
+    token = generate_auth_token()
+    
+    data['users'][email] = {
+        "user_id": user_id,
+        "name": name,
+        "email": email,
+        "password_hash": hash_password(password),
+        "token": token,
+        "created_at": datetime.now().isoformat(),
+        "last_login": None
+    }
+    
+    save_users(data)
+    return {
+        "user_id": user_id,
+        "name": name,
+        "email": email,
+        "token": token
+    }
+
+def authenticate_user(email: str, password: str):
+    """Authenticate user and return user data"""
+    data = load_users()
+    user = data.get('users', {}).get(email)
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    if not verify_password(password, user['password_hash']):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # Update last login
+    user['last_login'] = datetime.now().isoformat()
+    save_users(data)
+    
+    return {
+        "user_id": user["user_id"],
+        "name": user["name"],
+        "email": user["email"],
+        "token": user["token"]
+    }
+
+def get_user_by_token(token: str):
+    """Get user by auth token"""
+    data = load_users()
+    for email, user in data.get('users', {}).items():
+        if user.get('token') == token:
+            return {
+                "user_id": user["user_id"],
+                "name": user["name"],
+                "email": user["email"]
+            }
+    return None
+
 # API Key Header for authentication
 api_key_header = APIKeyHeader(name="Authorization", auto_error=False)
 
@@ -858,6 +954,72 @@ async def save_api_key(request: APIKeyRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ===== AUTHENTICATION ENDPOINTS =====
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+class SignUpRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+
+class VerifyTokenRequest(BaseModel):
+    token: str
+
+@app.post("/auth/signup")
+async def signup(request: SignUpRequest):
+    """Create a new user account"""
+    try:
+        user = create_user(request.email, request.password, request.name)
+        return {
+            "success": True,
+            "message": "Account created successfully",
+            "user": {
+                "user_id": user["user_id"],
+                "name": user["name"],
+                "email": user["email"]
+            },
+            "token": user["token"]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/auth/login")
+async def login(request: LoginRequest):
+    """Login and get authentication token"""
+    try:
+        user = authenticate_user(request.email, request.password)
+        return {
+            "success": True,
+            "message": "Login successful",
+            "user": {
+                "user_id": user["user_id"],
+                "name": user["name"],
+                "email": user["email"]
+            },
+            "token": user["token"]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/auth/verify")
+async def verify_token(request: VerifyTokenRequest):
+    """Verify authentication token and return user info"""
+    user = get_user_by_token(request.token)
+    if user:
+        return {
+            "success": True,
+            "user": user
+        }
+    else:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
 # ===== ADMIN ENDPOINTS (for managing customers) =====
 
 class CreateCustomerRequest(BaseModel):
@@ -1068,6 +1230,25 @@ async def list_models(api_key: str = Depends(verify_customer_api_key)):
     
     return {"models": models}
 
+
+# Create default admin user if no users exist
+def ensure_default_user():
+    """Create default admin user if no users exist"""
+    data = load_users()
+    if len(data.get('users', {})) == 0:
+        try:
+            default_user = create_user(
+                email="lexdata",
+                password="LexDataLabs2026",
+                name="LexData Labs Admin"
+            )
+            print(f"✅ Default admin user created: lexdata")
+            return default_user
+        except Exception as e:
+            print(f"⚠️ Could not create default user: {e}")
+
+# Initialize default user on startup
+ensure_default_user()
 
 if __name__ == "__main__":
     import uvicorn
