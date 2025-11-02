@@ -5,13 +5,10 @@ import ImageUpload from './components/ImageUpload';
 import DetectionResults from './components/DetectionResults';
 import Header from './components/Header';
 import AdminPanel from './components/AdminPanel';
-import Auth from './components/Auth';
 import axios from 'axios';
 import { buildUrl } from './api';
 
 function App() {
-  const [authenticated, setAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
   const [systemStatus, setSystemStatus] = useState({
     has_yolo_model: false,
     has_openai: false,
@@ -42,48 +39,10 @@ function App() {
   const [error, setError] = useState(null);
   const [currentView, setCurrentView] = useState('main'); // 'main' or 'admin'
 
-  // Check authentication on mount
+  // Fetch system status on mount
   useEffect(() => {
-    const token = localStorage.getItem('aicr_token');
-    const userData = localStorage.getItem('aicr_user');
-    
-    if (token && userData) {
-      // Verify token is still valid
-      axios.post(buildUrl('/auth/verify'), { token })
-        .then(response => {
-          if (response.data.success) {
-            setUser(JSON.parse(userData));
-            setAuthenticated(true);
-            fetchSystemStatus();
-          } else {
-            localStorage.removeItem('aicr_token');
-            localStorage.removeItem('aicr_user');
-          }
-        })
-        .catch(() => {
-          localStorage.removeItem('aicr_token');
-          localStorage.removeItem('aicr_user');
-        });
-    }
-  }, []);
-
-  const handleAuthSuccess = (userData) => {
-    setUser(userData);
-    setAuthenticated(true);
     fetchSystemStatus();
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('aicr_token');
-    localStorage.removeItem('aicr_user');
-    setAuthenticated(false);
-    setUser(null);
-  };
-
-  // Show auth page if not authenticated
-  if (!authenticated) {
-    return <Auth onAuthSuccess={handleAuthSuccess} />;
-  }
+  }, []);
 
   const fetchSystemStatus = async () => {
     try {
@@ -353,9 +312,7 @@ function App() {
 
       <div className="main-content">
         <Header 
-          onNavigateAdmin={() => setCurrentView('admin')} 
-          user={user}
-          onLogout={handleLogout}
+          onNavigateAdmin={() => setCurrentView('admin')}
         />
 
         <div className="content-container">
