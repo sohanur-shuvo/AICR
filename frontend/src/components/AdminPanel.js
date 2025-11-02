@@ -530,9 +530,6 @@ axios.post(API_URL, {
                   <button className="btn-copy" onClick={() => copyToClipboard(viewKey.api_key)}>Copy</button>
                 </div>
               </div>
-              <div className="usage-note" style={{ marginTop: '1rem' }}>
-                Use this key in the <strong>Authorization</strong> header. See <code>CUSTOMER_QUICK_START.md</code> for examples.
-              </div>
               <div className="form-actions" style={{ marginTop: '1.25rem' }}>
                 <button className="btn-secondary" onClick={() => setViewKey(null)}>Close</button>
               </div>
