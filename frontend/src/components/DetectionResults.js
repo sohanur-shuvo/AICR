@@ -17,21 +17,21 @@ function DetectionResults({ results, batchResults, ocrData, imagePreview, imageP
     return (
       <div className="detection-results-container">
         <div className="results-header">
-          <h2>📋 Batch Detection Results</h2>
+          <h2>Batch Detection Results</h2>
           <div className="batch-summary">
             <span className="summary-item">
-              📊 Total Images: <strong>{batchResults?.length || 0}</strong>
+              Total Images: <strong>{batchResults?.length || 0}</strong>
             </span>
             <span className="summary-item success">
-              ✅ Success: <strong>{successCount}</strong>
+              Success: <strong>{successCount}</strong>
             </span>
             {failCount > 0 && (
               <span className="summary-item error">
-                ❌ Failed: <strong>{failCount}</strong>
+                Failed: <strong>{failCount}</strong>
               </span>
             )}
             <span className="summary-item">
-              🔌 Total Devices: <strong>{totalDevices}</strong>
+              Total Devices: <strong>{totalDevices}</strong>
             </span>
           </div>
         </div>
@@ -43,7 +43,7 @@ function DetectionResults({ results, batchResults, ocrData, imagePreview, imageP
               <div className="batch-result-header">
                 <div className="result-title">
                   <h3>
-                    {result.success ? '✅' : '❌'} Image {result.image_index}: {result.image_name}
+                    {result.success ? '[OK]' : '[FAIL]'} Image {result.image_index}: {result.image_name}
                   </h3>
                   <span className="device-count-badge">
                     {result.device_count} device{result.device_count !== 1 ? 's' : ''}
@@ -93,7 +93,7 @@ function DetectionResults({ results, batchResults, ocrData, imagePreview, imageP
                           </div>
                           {device.text_on_device && device.text_on_device !== 'Unknown' && device.text_on_device.trim() && (
                             <div className="device-description-mini">
-                              <strong>📝 Text from device:</strong> {device.text_on_device}
+                              <strong>Text from device:</strong> {device.text_on_device}
                             </div>
                           )}
                           {device.description && (
@@ -108,7 +108,7 @@ function DetectionResults({ results, batchResults, ocrData, imagePreview, imageP
 
                   {result.ocr_data && result.ocr_data.extracted_text && result.ocr_data.extracted_text !== 'No text detected' && (
                     <details className="ocr-details">
-                      <summary>📝 OCR Results</summary>
+                      <summary>OCR Results</summary>
                       <div className="ocr-grid-mini">
                         <div><strong>Brand:</strong> {result.ocr_data.brand}</div>
                         <div><strong>Model:</strong> {result.ocr_data.model}</div>
@@ -120,7 +120,7 @@ function DetectionResults({ results, batchResults, ocrData, imagePreview, imageP
                 </>
               ) : (
                 <div className="error-message">
-                  ⚠️ Error: {result.error}
+                  Error: {result.error}
                 </div>
               )}
             </div>
@@ -130,11 +130,11 @@ function DetectionResults({ results, batchResults, ocrData, imagePreview, imageP
         {/* Export Section */}
         <div className="export-section">
           <button onClick={onExportExcel} className="btn-export">
-            📊 Download Complete Excel Report ({totalDevices} devices)
+            Download Complete Excel Report ({totalDevices} devices)
           </button>
           <div className="export-info">
             <small>
-              💡 Excel Report includes:
+              Excel Report includes:
               <ul>
                 <li>All {batchResults?.length || 0} images processed</li>
                 <li>All {totalDevices} devices detected</li>
@@ -152,7 +152,7 @@ function DetectionResults({ results, batchResults, ocrData, imagePreview, imageP
   return (
     <div className="detection-results-container">
       <div className="results-header">
-        <h2>📋 Detection Results</h2>
+        <h2>Detection Results</h2>
         <p className="results-count">
           {results?.length || 0} device{results?.length !== 1 ? 's' : ''} detected
         </p>
@@ -161,7 +161,7 @@ function DetectionResults({ results, batchResults, ocrData, imagePreview, imageP
       {/* OCR Results */}
       {ocrData && ocrData.extracted_text && ocrData.extracted_text !== 'No text detected' && (
         <div className="ocr-section">
-          <h3>📝 OCR Extracted Information</h3>
+          <h3>OCR Extracted Information</h3>
           <div className="ocr-grid">
             <div className="ocr-item">
               <span className="ocr-label">Brand:</span>
@@ -193,7 +193,7 @@ function DetectionResults({ results, batchResults, ocrData, imagePreview, imageP
           <div key={index} className="device-card">
             <div className="device-header">
               <div className="device-title">
-                <h3>🔌 Device #{index + 1}</h3>
+                <h3>Device #{index + 1}</h3>
                 <span className={`confidence-badge ${getConfidenceClass(device.confidence)}`}>
                   {device.confidence} Confidence
                 </span>
@@ -224,7 +224,7 @@ function DetectionResults({ results, batchResults, ocrData, imagePreview, imageP
                 <span className="info-value">
                   {device.port_count}
                   {device.port_count === 'Unknown' && (
-                    <span className="port-warning"> ⚠️ Not detected</span>
+                    <span className="port-warning"> Not detected</span>
                   )}
                 </span>
               </div>
@@ -232,21 +232,21 @@ function DetectionResults({ results, batchResults, ocrData, imagePreview, imageP
 
             {device.text_on_device && device.text_on_device !== 'Unknown' && device.text_on_device.trim() && (
               <div className="device-features">
-                <h4>📝 Text Read from Device (OpenAI Vision):</h4>
+                <h4>Text Read from Device (OpenAI Vision):</h4>
                 <p>{device.text_on_device}</p>
               </div>
             )}
 
             {device.features && (
               <div className="device-features">
-                <h4>🔍 Visible Features:</h4>
+                <h4>Visible Features:</h4>
                 <p>{device.features}</p>
               </div>
             )}
 
             {device.description && (
               <div className="device-description">
-                <h4>📝 Description:</h4>
+                <h4>Description:</h4>
                 <p>{device.description}</p>
               </div>
             )}
@@ -257,11 +257,11 @@ function DetectionResults({ results, batchResults, ocrData, imagePreview, imageP
       {/* Export Section */}
       <div className="export-section">
         <button onClick={onExportExcel} className="btn-export">
-          📊 Download Excel Report
+          Download Excel Report
         </button>
         <div className="export-info">
           <small>
-            💡 Excel Report includes:
+            Excel Report includes:
             <ul>
               <li>Device detections</li>
               <li>OCR results</li>

@@ -74,7 +74,7 @@ function SignUp({ onSignUp, onSwitchToLogin }) {
 
           {success ? (
             <div className="auth-success">
-              ✅ Account created successfully! Redirecting...
+              Success: Account created successfully! Redirecting...
             </div>
           ) : (
             <form onSubmit={handleSubmit}>

@@ -45,13 +45,13 @@ function Sidebar({
           const err = await res.json().catch(() => ({}));
           throw new Error(err.detail || 'Failed to save API key');
         }
-        setMessage('✅ API key saved. You will not need to enter it again.');
+        setMessage('Success: API key saved. You will not need to enter it again.');
         setApiKey(apiKeyInput);
       } catch (e) {
-        setMessage(`❌ ${e.message}`);
+        setMessage(`Error: ${e.message}`);
       }
     } else {
-      setMessage('❌ Invalid API key or connection failed');
+      setMessage('Error: Invalid API key or connection failed');
     }
 
     setConnecting(false);
@@ -87,10 +87,10 @@ function Sidebar({
         throw new Error(err.detail || 'Upload failed');
       }
 
-      setModelMessage('✅ Model uploaded. Switched to YOLO detection.');
+      setModelMessage('Success: Model uploaded. Switched to YOLO detection.');
       setDetectionMode('yolo');
     } catch (err) {
-      setModelMessage(`❌ ${err.message}`);
+      setModelMessage(`Error: ${err.message}`);
     } finally {
       setModelUploading(false);
       // Optionally refresh status on parent by reloading window or provide a callback
@@ -100,15 +100,15 @@ function Sidebar({
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <h2>⚙️ Configuration</h2>
+        <h2>Configuration</h2>
       </div>
 
       <div className="sidebar-section">
-        <h3>🔑 OpenAI API Key</h3>
+        <h3>OpenAI API Key</h3>
 
         {systemStatus.has_openai && apiKeyValid ? (
           <div className="api-key-status">
-            <div className="success-message">✅ API Key loaded</div>
+            <div className="success-message">API Key loaded</div>
             <small>Key: {apiKey.substring(0, 7)}...{apiKey.substring(apiKey.length - 4)}</small>
           </div>
         ) : (
@@ -125,15 +125,15 @@ function Sidebar({
               disabled={connecting}
               className="btn-primary"
             >
-              {connecting ? 'Connecting...' : '🔗 Connect to OpenAI'}
+              {connecting ? 'Connecting...' : 'Connect to OpenAI'}
             </button>
             {message && (
-              <div className={`message ${message.includes('✅') ? 'success' : 'error'}`}>
+              <div className={`message ${message.includes('Success') ? 'success' : 'error'}`}>
                 {message}
               </div>
             )}
             <small className="help-text">
-              💡 Get your API key from{' '}
+              Get your API key from{' '}
               <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">
                 OpenAI Platform
               </a>
@@ -143,7 +143,7 @@ function Sidebar({
 
         {apiKey && (
           <button onClick={handleClearApiKey} className="btn-secondary">
-            🗑️ Clear API Key
+            Clear API Key
           </button>
         )}
       </div>
@@ -180,7 +180,7 @@ function Sidebar({
       )}
 
       <div className="sidebar-section">
-        <h3>🔍 OCR Settings</h3>
+        <h3>OCR Settings</h3>
         <label className="checkbox-label">
           <input
             type="checkbox"
@@ -215,7 +215,7 @@ function Sidebar({
 
       <div className="sidebar-section">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-          <h3>📊 System Status</h3>
+          <h3>System Status</h3>
           {onRefreshStatus && (
             <button
               onClick={onRefreshStatus}
@@ -232,18 +232,18 @@ function Sidebar({
               onMouseLeave={(e) => e.target.style.background = 'none'}
               title="Refresh Status"
             >
-              🔄
+              Refresh
             </button>
           )}
         </div>
         <div className="status-item">
           <span className={systemStatus.has_yolo_model ? 'status-success' : 'status-warning'}>
-            {systemStatus.has_yolo_model ? '✅' : '⚠️'} YOLO Model
+            {systemStatus.has_yolo_model ? '[OK]' : '[WARN]'} YOLO Model
           </span>
         </div>
         <div className="status-item">
           <span className={systemStatus.has_openai || apiKeyValid ? 'status-success' : 'status-warning'}>
-            {systemStatus.has_openai || apiKeyValid ? '✅' : '⚠️'} OpenAI API
+            {systemStatus.has_openai || apiKeyValid ? '[OK]' : '[WARN]'} OpenAI API
           </span>
           {!systemStatus.has_openai && !apiKeyValid && (
             <small>Enter API key above or set OPENAI_API_KEY in Railway</small>
@@ -263,7 +263,7 @@ function Sidebar({
           </label>
           {modelUploading && <small>Uploading model...</small>}
           {modelMessage && (
-            <div className={`message ${modelMessage.startsWith('✅') ? 'success' : 'error'}`}>
+            <div className={`message ${modelMessage.startsWith('Success') ? 'success' : 'error'}`}>
               {modelMessage}
             </div>
           )}
@@ -273,7 +273,7 @@ function Sidebar({
       <div className="divider"></div>
 
       <div className="sidebar-section">
-        <h3>ℹ️ About</h3>
+        <h3>About</h3>
         {detectionMode === 'yolo' ? (
           <p className="info-text">
             Using custom-trained YOLO model for fast, accurate detection of specific device models.

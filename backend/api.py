@@ -1270,10 +1270,10 @@ def ensure_default_user():
                 name="LexData Labs Admin",
                 email="lexdata"
             )
-            print(f"✅ Default admin user created: lexdata")
+            print(f"[SUCCESS] Default admin user created: lexdata")
             return default_user
         except Exception as e:
-            print(f"⚠️ Could not create default user: {e}")
+            print(f"[WARNING] Could not create default user: {e}")
 
 # Initialize default user on startup
 ensure_default_user()

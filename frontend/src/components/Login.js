@@ -55,7 +55,7 @@ function Login({ onLogin, onSwitchToSignUp }) {
             {error && <div className="auth-error">{error}</div>}
 
             <div className="auth-form-group">
-              <label htmlFor="email">📧 Email Address</label>
+              <label htmlFor="email">Email Address</label>
               <input
                 type="email"
                 id="email"
@@ -70,7 +70,7 @@ function Login({ onLogin, onSwitchToSignUp }) {
             </div>
 
             <div className="auth-form-group">
-              <label htmlFor="password">🔒 Password</label>
+              <label htmlFor="password">Password</label>
               <input
                 type="password"
                 id="password"

@@ -76,7 +76,7 @@ function ImageUpload({ onImageUpload, onBatchUpload, imagePreview, imagePreviews
               onClick={() => handleModeChange('batch')}
               disabled={detecting}
             >
-              📚 Batch Upload
+              Batch Upload
             </button>
           </div>
         </div>
@@ -134,7 +134,7 @@ function ImageUpload({ onImageUpload, onBatchUpload, imagePreview, imagePreviews
                       Analyzing...
                     </>
                   ) : (
-                    <>🔍 Detect Device</>
+                    <>Detect Device</>
                   )}
                 </button>
                 <button
@@ -142,7 +142,7 @@ function ImageUpload({ onImageUpload, onBatchUpload, imagePreview, imagePreviews
                   className="btn-clear"
                   disabled={detecting}
                 >
-                  🗑️ Clear Image
+                  Clear Image
                 </button>
               </div>
             </div>
@@ -158,7 +158,7 @@ function ImageUpload({ onImageUpload, onBatchUpload, imagePreview, imagePreviews
                 >
                   <input {...getInputProps()} />
                   <div className="dropzone-content">
-                    <div className="upload-icon">📚</div>
+                    <div className="upload-icon">Upload</div>
                     {isDragActive ? (
                       <p>Drop the images here...</p>
                     ) : (
@@ -191,7 +191,7 @@ function ImageUpload({ onImageUpload, onBatchUpload, imagePreview, imagePreviews
             ) : (
               <div className="batch-preview-container">
                 <div className="batch-info">
-                  <h3>📦 {imagePreviews.length} image{imagePreviews.length > 1 ? 's' : ''} selected</h3>
+                  <h3>{imagePreviews.length} image{imagePreviews.length > 1 ? 's' : ''} selected</h3>
                   <p>Ready to process in batch mode</p>
                 </div>
 
@@ -216,7 +216,7 @@ function ImageUpload({ onImageUpload, onBatchUpload, imagePreview, imagePreviews
                         Processing {imagePreviews.length} images...
                       </>
                     ) : (
-                      <>🔍 Detect All Devices ({imagePreviews.length} images)</>
+                      <>Detect All Devices ({imagePreviews.length} images)</>
                     )}
                   </button>
                   <button
@@ -224,7 +224,7 @@ function ImageUpload({ onImageUpload, onBatchUpload, imagePreview, imagePreviews
                     className="btn-clear"
                     disabled={detecting}
                   >
-                    🗑️ Clear All
+                    Clear All
                   </button>
                 </div>
               </div>
@@ -234,7 +234,7 @@ function ImageUpload({ onImageUpload, onBatchUpload, imagePreview, imagePreviews
 
         {disabled && (
           <div className="disabled-message">
-            ⚠️ Please configure a detection method in the sidebar first
+            Warning: Please configure a detection method in the sidebar first
           </div>
         )}
       </div>

@@ -113,19 +113,19 @@ function AdminPanel() {
   return (
     <div className="admin-panel">
       <div className="admin-header">
-        <h1>🔑 API Key Management</h1>
+        <h1>API Key Management</h1>
         <p className="admin-subtitle">Manage customer API keys and monitor usage</p>
       </div>
 
       {error && (
         <div className="admin-error-banner">
-          ❌ {error}
+          Error: {error}
         </div>
       )}
 
       {copySuccess && (
         <div className="admin-success-banner">
-          ✅ API Key copied to clipboard!
+          API Key copied to clipboard!
         </div>
       )}
 
@@ -149,7 +149,7 @@ function AdminPanel() {
       <div className="admin-actions">
         <div className="toolbar-left">
           <div className="search-box">
-            <span className="search-icon">🔎</span>
+            <span className="search-icon">Search</span>
             <input
               type="text"
               placeholder="Search customers by name, email, or ID"
@@ -158,7 +158,7 @@ function AdminPanel() {
             />
             {filterText && (
               <button className="btn-clear-search" onClick={() => setFilterText('')} title="Clear">
-                ✕
+                X
               </button>
             )}
           </div>
@@ -172,10 +172,10 @@ function AdminPanel() {
               setError(null);
             }}
           >
-            ➕ Create New API Key
+            Create New API Key
           </button>
           <button className="btn-refresh" onClick={loadCustomers}>
-            🔄 Refresh
+            Refresh
           </button>
         </div>
       </div>
@@ -193,16 +193,16 @@ function AdminPanel() {
                   setCreatedKey(null);
                 }}
               >
-                ✕
+                X
               </button>
             </div>
 
             {createdKey ? (
               <div className="api-key-success">
-                <div className="success-icon">✅</div>
+                <div className="success-icon">Success</div>
                 <h3>API Key Created Successfully!</h3>
                 <p className="warning-text">
-                  ⚠️ <strong>Save this API key now!</strong> You won't be able to see it again.
+                  <strong>Warning: Save this API key now!</strong> You won't be able to see it again.
                 </p>
 
                 <div className="api-key-display">
@@ -222,7 +222,7 @@ function AdminPanel() {
                       className="btn-copy"
                       onClick={() => copyToClipboard(createdKey.api_key)}
                     >
-                      📋 Copy
+                      Copy
                     </button>
                   </div>
                 </div>
@@ -310,7 +310,7 @@ axios.post(API_URL, {
                   </div>
 
                   <div className="usage-note">
-                    💡 <strong>Share this with your customer:</strong> Copy the code example above and send it along with their API key. 
+                    <strong>Share this with your customer:</strong> Copy the code example above and send it along with their API key. 
                     They can use it immediately to integrate into their application.
                   </div>
                 </div>
@@ -375,13 +375,13 @@ axios.post(API_URL, {
           <div className="admin-loading">Loading customers...</div>
         ) : customers.length === 0 ? (
           <div className="admin-empty">
-            <div className="empty-icon">📭</div>
+            <div className="empty-icon">Empty</div>
             <h3>No customers yet</h3>
             <p>Create your first API key to get started</p>
           </div>
         ) : filteredCustomers.length === 0 ? (
           <div className="admin-empty">
-            <div className="empty-icon">🔎</div>
+            <div className="empty-icon">No matches</div>
             <h3>No matches found</h3>
             <p>Try a different search term</p>
           </div>
@@ -414,14 +414,14 @@ axios.post(API_URL, {
                       onClick={() => copyToClipboard(customer.api_key_prefix)}
                       title="Copy partial key"
                     >
-                      📋
+                      Copy
                     </button>
                     <button
                       className="btn-view-key"
                       title="View full key"
                       onClick={() => setViewKey({ name: customer.name || customer.customer_id, api_key: customer.api_key })}
                     >
-                      👁 View
+                      View
                     </button>
                   </td>
                   <td className="date-cell">{formatDate(customer.created_at)}</td>
@@ -430,7 +430,7 @@ axios.post(API_URL, {
                   </td>
                   <td>
                     <span className={`status-badge ${customer.active ? 'active' : 'inactive'}`}>
-                      {customer.active ? '✓ Active' : '✗ Inactive'}
+                      {customer.active ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td>
@@ -442,7 +442,7 @@ axios.post(API_URL, {
                       })}
                       title="Delete API key"
                     >
-                      🗑️ Delete
+                      Delete
                     </button>
                   </td>
                 </tr>
@@ -519,15 +519,15 @@ axios.post(API_URL, {
         <div className="admin-dialog-overlay" onClick={() => setViewKey(null)}>
           <div className="admin-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="admin-dialog-header">
-              <h2>🔑 API Key for {viewKey.name}</h2>
-              <button className="btn-close" onClick={() => setViewKey(null)}>✕</button>
+              <h2>API Key for {viewKey.name}</h2>
+              <button className="btn-close" onClick={() => setViewKey(null)}>X</button>
             </div>
             <div className="admin-form" style={{ paddingTop: 0 }}>
               <div className="api-key-display">
                 <div className="api-key-label">Full API Key</div>
                 <div className="api-key-box">
                   <code className="api-key-text">{viewKey.api_key}</code>
-                  <button className="btn-copy" onClick={() => copyToClipboard(viewKey.api_key)}>📋 Copy</button>
+                  <button className="btn-copy" onClick={() => copyToClipboard(viewKey.api_key)}>Copy</button>
                 </div>
               </div>
               <div className="usage-note" style={{ marginTop: '1rem' }}>

@@ -70,6 +70,23 @@ function App() {
     fetchSystemStatus();
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('aicr_token');
+    localStorage.removeItem('aicr_user');
+    setAuthenticated(false);
+    // Reset all app state
+    setSystemStatus({
+      has_yolo_model: false,
+      has_openai: false,
+      detection_mode: null
+    });
+    setApiKey('');
+    setApiKeyValid(false);
+    setDetectionResults(null);
+    setBatchResults(null);
+    setOcrData(null);
+  };
+
   // Show login page if not authenticated
   if (!authenticated) {
     return <SimpleLogin onLogin={handleLogin} />;
@@ -348,22 +365,23 @@ function App() {
       <div className="main-content">
         <Header 
           onNavigateAdmin={() => setCurrentView('admin')}
+          onLogout={handleLogout}
         />
 
         <div className="content-container">
           {systemStatus.detection_mode === null && (
             <div className="warning-banner">
-              ⚠️ No detection method available! Please configure OpenAI API key or train a YOLO model.
+              Warning: No detection method available! Please configure OpenAI API key or train a YOLO model.
             </div>
           )}
 
           <div className="mode-indicator" data-mode={detectionMode}>
-            {detectionMode === 'yolo' ? '🎯 Mode: Custom YOLO Model' : '🤖 Mode: OpenAI Vision API'}
+            {detectionMode === 'yolo' ? 'Mode: Custom YOLO Model' : 'Mode: OpenAI Vision API'}
           </div>
 
           {error && (
             <div className="error-banner">
-              ❌ {error}
+              Error: {error}
             </div>
           )}
 
