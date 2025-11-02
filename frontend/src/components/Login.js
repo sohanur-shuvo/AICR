@@ -44,29 +44,33 @@ function Login({ onLogin, onSwitchToSignUp }) {
     <>
       <div className="auth-header">
         <div className="auth-logo">AICR</div>
-        <p className="auth-subtitle">Device Detection Platform</p>
-        <h2 style={{ marginTop: '20px', color: '#333' }}>Welcome Back</h2>
+        <p className="auth-subtitle">AI-Powered Device Detection Platform</p>
+        <h2>Welcome Back</h2>
+        <p style={{ marginTop: '8px', color: '#64748b', fontSize: '14px' }}>
+          Sign in to continue to your dashboard
+        </p>
       </div>
 
           <form onSubmit={handleSubmit}>
             {error && <div className="auth-error">{error}</div>}
 
             <div className="auth-form-group">
-              <label htmlFor="email">Email Address</label>
+              <label htmlFor="email">📧 Email Address</label>
               <input
                 type="email"
                 id="email"
                 name="email"
                 className="auth-input"
-                placeholder="Enter your email"
+                placeholder="you@example.com"
                 value={formData.email}
                 onChange={handleChange}
                 required
+                autoComplete="email"
               />
             </div>
 
             <div className="auth-form-group">
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password">🔒 Password</label>
               <input
                 type="password"
                 id="password"
@@ -76,6 +80,7 @@ function Login({ onLogin, onSwitchToSignUp }) {
                 value={formData.password}
                 onChange={handleChange}
                 required
+                autoComplete="current-password"
               />
             </div>
 
